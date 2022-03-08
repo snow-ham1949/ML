@@ -1,8 +1,20 @@
-num = 2
+serial = 12
+from torchensemble import VotingClassifier
+from torchensemble.utils.io import load
+# Main link
+# !wget -O libriphone.zip "https://github.com/xraychen/shiny-robot/releases/download/v1.0/libriphone.zip"
+# !unzip -oq libriphone.zip
+# !ls libriphone
 
 import os
 import random
+import pandas as pd
+
 import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from torch.utils.data import Dataset
+from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 def load_feat(path):
@@ -37,7 +49,6 @@ def concat_feat(x, concat_n):
     return x.permute(1, 0, 2).view(seq_len, concat_n * feature_dim)
 
 def preprocess_data(split, feat_dir, phone_path, concat_nframes, train_ratio=0.8, train_val_seed=1337):
-    train_val_seed=459
     class_num = 41 # NOTE: pre-computed, should not need change
     mode = 'train' if (split == 'train' or split == 'val') else 'test'
 
@@ -95,9 +106,6 @@ def preprocess_data(split, feat_dir, phone_path, concat_nframes, train_ratio=0.8
     else:
       return X
 
-from torch.utils.data import Dataset
-from torch.utils.data import DataLoader
-
 class LibriDataset(Dataset):
     def __init__(self, X, y=None):
         self.data = X
@@ -115,8 +123,6 @@ class LibriDataset(Dataset):
     def __len__(self):
         return len(self.data)
 
-import torch.nn as nn
-
 class BasicBlock(nn.Module):
     def __init__(self, input_dim, output_dim):
         super(BasicBlock, self).__init__()
@@ -124,22 +130,20 @@ class BasicBlock(nn.Module):
         self.block = nn.Sequential(
             nn.Linear(input_dim, output_dim),
             nn.BatchNorm1d(output_dim),
-            nn.Dropout(0.5),
-            nn.LeakyReLU(),
+            nn.Dropout(p=0.25),
+            nn.ReLU(),
         )
 
     def forward(self, x):
         x = self.block(x)
         return x
 
-
 class Classifier(nn.Module):
-    def __init__(self, input_dim, output_dim=41, hidden_layers=1, hidden_dim=256,
-                 lstm_hidden_dim=256, lstm_hidden_layers=5):
+    def __init__(self, input_dim, output_dim=41, hidden_layers=1, hidden_dim=256, lstm_hidden_dim = 256, lstm_hidden_layers = 5):
         super(Classifier, self).__init__()
 
         self.lstm = nn.LSTM(input_dim, lstm_hidden_dim, lstm_hidden_layers, batch_first=True, bidirectional=True)
-
+       
         self.fc = nn.Sequential(
             BasicBlock(lstm_hidden_dim*2, hidden_dim),
             *[BasicBlock(hidden_dim, hidden_dim) for _ in range(hidden_layers)],
@@ -148,38 +152,40 @@ class Classifier(nn.Module):
 
     def forward(self, x):
         lstm_output, (hidden, cell) = self.lstm(x)
-        x = self.fc(lstm_output[:,-1,:])
-        # x = self.fc(x)
+        # hidden = torch.cat((hidden[-2,:,:], hidden[-1,:,:]), dim = 1)
+        # print("LSTM output", lstm_output.shape)
+        x=self.fc(lstm_output[:,-1,:])
         return x
 
+n_estimators= 8
 
-# data prarameters
-concat_nframes = 49              # the number of frames to concat with, n must be odd (total 2k+1 = n frames)
+concat_nframes = 53              # the number of frames to concat with, n must be odd (total 2k+1 = n frames)
 train_ratio = 0.95               # the ratio of data used for training, the rest will be used for validation
 
 # training parameters
-seed = 52728                      # random seed
-batch_size = 512                # batch size
-num_epoch = 120                  # the number of training epoch
-learning_rate = 0.001          # learning rate
-weight_decay = 0.005
-model_path = './model' + str(num) + '.ckpt'     # the path where the checkpoint will be saved
+seed = 881105                        # random seed
+batch_size = 512               
+num_epoch = 35                 
+learning_rate = 0.001         
+model_path = './model'
 
 # model parameters
-# input_dim = 39 * concat_nframes # the input dim of the model, you should not change the value
+# input_dim = concat_nframes
 input_dim = 39
-hidden_layers = 5               # the number of hidden layers
-hidden_dim = 1024                # the hidden dim
-lstm_hidden_dim= 256
-lstm_hdden_layers=3
+hidden_layers = 10               # the number of hidden layers
+hidden_dim = 1000               # the hidden dim
+lstm_hidden_dim = 256
+lstm_hidden_layers = 3
+
 
 import gc
 
 # preprocess data
 train_X, train_y = preprocess_data(split='train', feat_dir='./libriphone/feat', phone_path='./libriphone', concat_nframes=concat_nframes, train_ratio=train_ratio)
-train_X = torch.reshape(train_X, (train_X.shape[0], concat_nframes, 39))
+train_X = torch.reshape(train_X,(train_X.shape[0], concat_nframes, 39))
+# print(train_X.shape)
 val_X, val_y = preprocess_data(split='val', feat_dir='./libriphone/feat', phone_path='./libriphone', concat_nframes=concat_nframes, train_ratio=train_ratio)
-val_X = torch.reshape(val_X, (val_X.shape[0], concat_nframes, 39))
+val_X = torch.reshape(val_X,(val_X.shape[0], concat_nframes, 39))
 
 # get dataset
 train_set = LibriDataset(train_X, train_y)
@@ -193,8 +199,7 @@ gc.collect()
 train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True)
 val_loader = DataLoader(val_set, batch_size=batch_size, shuffle=False)
 
-
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
+device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
 print(f'DEVICE: {device}')
 
 
@@ -210,81 +215,76 @@ def same_seeds(seed):
     torch.backends.cudnn.benchmark = False
     torch.backends.cudnn.deterministic = True
 
-
-# fix random seed
 same_seeds(seed)
 
-# create model, define a loss function, optimizer, and scheduler
-model = Classifier(input_dim=input_dim, hidden_layers=hidden_layers, hidden_dim=hidden_dim, lstm_hidden_dim=lstm_hidden_dim, lstm_hidden_layers=lstm_hdden_layers).to(device)
+# create model, define a loss function, and optimizer
+model = Classifier(input_dim=input_dim, hidden_layers=hidden_layers, hidden_dim=hidden_dim,lstm_hidden_dim = lstm_hidden_dim, lstm_hidden_layers = lstm_hidden_layers).to(device)
 criterion = nn.CrossEntropyLoss() 
-optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
-scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer=optimizer, T_max = num_epoch//20, eta_min=0)
-
-
-best_acc = 0.0
-for epoch in range(num_epoch):
-    train_acc = 0.0
-    train_loss = 0.0
-    val_acc = 0.0
-    val_loss = 0.0
-    
-    # training
-    model.train() # set the model to training mode
-    for i, batch in enumerate(tqdm(train_loader)):
-        features, labels = batch
-        features = features.to(device)
-        labels = labels.to(device)
-        
-        optimizer.zero_grad() 
-        outputs = model(features) 
-        outputs = outputs.squeeze()
-        
-        loss = criterion(outputs, labels)
-        loss.backward() 
-        optimizer.step() 
-        
-        _, train_pred = torch.max(outputs, 1) # get the index of the class with the highest probability
-        train_acc += (train_pred.detach() == labels.detach()).sum().item()
-        train_loss += loss.item()
-    
-    # validation
-    if len(val_set) > 0:
-        model.eval() # set the model to evaluation mode
-        with torch.no_grad():
-            for i, batch in enumerate(tqdm(val_loader)):
-                features, labels = batch
-                features = features.to(device)
-                labels = labels.to(device)
-                outputs = model(features)
-                
-                loss = criterion(outputs, labels) 
-                
-                _, val_pred = torch.max(outputs, 1) 
-                val_acc += (val_pred.cpu() == labels.cpu()).sum().item() # get the index of the class with the highest probability
-                val_loss += loss.item()
-
-            print('[{:03d}/{:03d}] Train Acc: {:3.6f} Loss: {:3.6f} | Val Acc: {:3.6f} loss: {:3.6f}'.format(
-                epoch + 1, num_epoch, train_acc/len(train_set), train_loss/len(train_loader), val_acc/len(val_set), val_loss/len(val_loader)
-            ))
-
-            # if the model improves, save a checkpoint at this epoch
-            if val_acc > best_acc:
-                best_acc = val_acc
-                torch.save(model.state_dict(), model_path)
-                print('saving model with acc {:.3f}'.format(best_acc/len(val_set)))
-    else:
-        print('[{:03d}/{:03d}] Train Acc: {:3.6f} Loss: {:3.6f}'.format(
-            epoch + 1, num_epoch, train_acc/len(train_set), train_loss/len(train_loader)
-        ))
-
-    scheduler.step()
-
-# if not validating, save the last epoch
-if len(val_set) == 0:
-    torch.save(model.state_dict(), model_path)
-    print('saving model at last epoch')
-
+# optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate, weight_decay = 0.05)
+ensemble = VotingClassifier(
+    estimator=model,               # here is your deep learning model
+    n_estimators=n_estimators,                        # number of base estimators
+    cuda=True
+)
+ensemble.set_criterion(criterion)
+ensemble.set_optimizer(
+    "Adam",                                 # type of parameter optimizer
+    lr=learning_rate,                       # learning rate of parameter optimizer
+    weight_decay=0.05,              # weight decay of parameter optimizer
+)
+ensemble.set_scheduler(
+    "CosineAnnealingLR",                    # type of learning rate scheduler
+    T_max=10,                           # additional arguments on the scheduler
+)
+ensemble.fit(
+    train_loader = train_loader,
+    epochs=num_epoch,                          # number of training epochs
+    save_model = True,
+    save_dir = "./model/",
+    test_loader = val_loader
+)
+# accuracy = model.predict(test_loader)
 
 # %%
 del train_loader, val_loader
 gc.collect()
+
+test_X = preprocess_data(split='test', feat_dir='./libriphone/feat', phone_path='./libriphone', concat_nframes=concat_nframes)
+test_X = torch.reshape(test_X,(test_X.shape[0], concat_nframes, 39))
+test_set = LibriDataset(test_X, None)
+test_loader = DataLoader(test_set, batch_size=batch_size, shuffle=False)
+del model
+del ensemble
+model = Classifier(input_dim=input_dim, hidden_layers=hidden_layers, hidden_dim=hidden_dim,lstm_hidden_dim = lstm_hidden_dim, lstm_hidden_layers = lstm_hidden_layers).to(device)
+# load model
+ensemble = VotingClassifier(
+    estimator=model,               # here is your deep learning model
+    n_estimators=n_estimators,                        # number of base estimators
+    cuda=True
+)
+load(ensemble, save_dir = model_path, logger = None)
+# model.load_state_dict(torch.load(model_path))
+
+# Make prediction.
+
+test_acc = 0.0
+test_lengths = 0
+pred = np.array([], dtype=np.int32)
+
+ensemble.eval()
+with torch.no_grad():
+    for i, batch in enumerate(tqdm(test_loader)):
+        features = batch
+        features = features.to(device)
+
+        outputs = ensemble(features)
+
+        _, test_pred = torch.max(outputs, 1) # get the index of the class with the highest probability
+        pred = np.concatenate((pred, test_pred.cpu().numpy()), axis=0)
+
+with open('prediction'+ str(serial) + '.csv', 'w') as f:
+    f.write('Id,Class\n')
+    for i, y in enumerate(pred):
+        f.write('{},{}\n'.format(i, y))
+
+
