@@ -1,29 +1,7 @@
-# %% [markdown]
-# # **Homework 2 Phoneme Classification**
-# 
-# * Slides: https://docs.google.com/presentation/d/1v6HkBWiJb8WNDcJ9_-2kwVstxUWml87b9CnA16Gdoio/edit?usp=sharing
-# * Kaggle: https://www.kaggle.com/c/ml2022spring-hw2
-# * Video: TBA
-# 
-
-# %%
 num = 1
 
-# %% [markdown]
-# ### Preparing Data
-
-# %% [markdown]
-# **Helper functions to pre-process the training data from raw MFCC features of each utterance.**
-# 
-# A phoneme may span several frames and is dependent to past and future frames. \
-# Hence we concatenate neighboring phonemes for training to achieve higher accuracy. The **concat_feat** function concatenates past and future k frames (total 2k+1 = n frames), and we predict the center frame.
-# 
-# Feel free to modify the data preprocess functions, but **do not drop any frame** (if you modify the functions, remember to check that the number of frames are the same as mentioned in the slides)
-
-# %%
 import os
 import random
-import pandas as pd
 import torch
 from tqdm import tqdm
 
@@ -59,7 +37,7 @@ def concat_feat(x, concat_n):
     return x.permute(1, 0, 2).view(seq_len, concat_n * feature_dim)
 
 def preprocess_data(split, feat_dir, phone_path, concat_nframes, train_ratio=0.8, train_val_seed=1337):
-    train_val_seed=1082
+    train_val_seed=459
     class_num = 41 # NOTE: pre-computed, should not need change
     mode = 'train' if (split == 'train' or split == 'val') else 'test'
 
@@ -117,12 +95,6 @@ def preprocess_data(split, feat_dir, phone_path, concat_nframes, train_ratio=0.8
     else:
       return X
 
-
-# %% [markdown]
-# ## Define Dataset
-
-# %%
-import torch
 from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
 
@@ -143,14 +115,7 @@ class LibriDataset(Dataset):
     def __len__(self):
         return len(self.data)
 
-
-# %% [markdown]
-# ## Define Model
-
-# %%
-import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
 class BasicBlock(nn.Module):
     def __init__(self, input_dim, output_dim):
@@ -187,16 +152,13 @@ class Classifier(nn.Module):
         # x = self.fc(x)
         return x
 
-# %% [markdown]
-# ## Hyper-parameters
 
-# %%
 # data prarameters
 concat_nframes = 49              # the number of frames to concat with, n must be odd (total 2k+1 = n frames)
 train_ratio = 0.95               # the ratio of data used for training, the rest will be used for validation
 
 # training parameters
-seed = 4748                      # random seed
+seed = 52728                      # random seed
 batch_size = 512                # batch size
 num_epoch = 120                  # the number of training epoch
 learning_rate = 0.01          # learning rate
@@ -211,10 +173,6 @@ hidden_dim = 1024                # the hidden dim
 lstm_hidden_dim= 256
 lstm_hdden_layers=2
 
-# %% [markdown]
-# ## Prepare dataset and model
-
-# %%
 import gc
 
 # preprocess data
@@ -235,11 +193,11 @@ gc.collect()
 train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True)
 val_loader = DataLoader(val_set, batch_size=batch_size, shuffle=False)
 
-# %%
-device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
+
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
 print(f'DEVICE: {device}')
 
-# %%
+
 import numpy as np
 
 #fix seed
@@ -252,7 +210,7 @@ def same_seeds(seed):
     torch.backends.cudnn.benchmark = False
     torch.backends.cudnn.deterministic = True
 
-# %%
+
 # fix random seed
 same_seeds(seed)
 
@@ -262,10 +220,7 @@ criterion = nn.CrossEntropyLoss()
 optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
 scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer=optimizer, T_max = num_epoch//20, eta_min=0)
 
-# %% [markdown]
-# ## Training
 
-# %%
 best_acc = 0.0
 for epoch in range(num_epoch):
     train_acc = 0.0

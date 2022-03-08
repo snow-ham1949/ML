@@ -1,8 +1,7 @@
-num = 1
+num = 2
 
 import os
 import random
-import pandas as pd
 import torch
 from tqdm import tqdm
 
@@ -96,7 +95,7 @@ def preprocess_data(split, feat_dir, phone_path, concat_nframes, train_ratio=0.8
     else:
       return X
 
-import torch
+
 from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
 
@@ -117,9 +116,8 @@ class LibriDataset(Dataset):
     def __len__(self):
         return len(self.data)
         
-import torch
+
 import torch.nn as nn
-import torch.nn.functional as F
 
 class BasicBlock(nn.Module):
     def __init__(self, input_dim, output_dim):
@@ -156,8 +154,7 @@ class Classifier(nn.Module):
         # x = self.fc(x)
         return x
 
-# %%
-# data prarameters
+
 concat_nframes = 45              # the number of frames to concat with, n must be odd (total 2k+1 = n frames)
 train_ratio = 0.95               # the ratio of data used for training, the rest will be used for validation
 
@@ -177,13 +174,13 @@ hidden_dim = 1024                # the hidden dim
 lstm_hidden_dim= 256
 lstm_hdden_layers=2
 
-device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
 print(f'DEVICE: {device}')
 
-# %%
+
 import numpy as np
 
-#fix seed
+
 def same_seeds(seed):
     torch.manual_seed(seed)
     if torch.cuda.is_available():
@@ -193,8 +190,6 @@ def same_seeds(seed):
     torch.backends.cudnn.benchmark = False
     torch.backends.cudnn.deterministic = True
 
-# %%
-# fix random seed
 same_seeds(seed)
 
 
