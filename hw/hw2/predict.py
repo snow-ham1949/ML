@@ -1,7 +1,6 @@
-num = 3
+num = 4
 
 import os
-import random
 import torch
 from tqdm import tqdm
 
@@ -37,26 +36,12 @@ def concat_feat(x, concat_n):
     return x.permute(1, 0, 2).view(seq_len, concat_n * feature_dim)
 
 def preprocess_data(split, feat_dir, phone_path, concat_nframes, train_ratio=0.8, train_val_seed=1337):
-    train_val_seed= 67231
     class_num = 41 # NOTE: pre-computed, should not need change
-    mode = 'train' if (split == 'train' or split == 'val') else 'test'
+    mode = 'test'
 
     label_dict = {}
-    if mode != 'test':
-      phone_file = open(os.path.join(phone_path, f'{mode}_labels.txt')).readlines()
-
-      for line in phone_file:
-          line = line.strip('\n').split(' ')
-          label_dict[line[0]] = [int(p) for p in line[1:]]
-
-    if split == 'train' or split == 'val':
-        # split training and validation data
-        usage_list = open(os.path.join(phone_path, 'train_split.txt')).readlines()
-        random.seed(train_val_seed)
-        random.shuffle(usage_list)
-        percent = int(len(usage_list) * train_ratio)
-        usage_list = usage_list[:percent] if split == 'train' else usage_list[percent:]
-    elif split == 'test':
+    
+    if split == 'test':
         usage_list = open(os.path.join(phone_path, 'test_split.txt')).readlines()
     else:
         raise ValueError('Invalid \'split\' argument for dataset: PhoneDataset!')
@@ -66,8 +51,6 @@ def preprocess_data(split, feat_dir, phone_path, concat_nframes, train_ratio=0.8
 
     max_len = 3000000
     X = torch.empty(max_len, 39 * concat_nframes)
-    if mode != 'test':
-      y = torch.empty(max_len, dtype=torch.long)
 
     idx = 0
     for i, fname in tqdm(enumerate(usage_list)):
@@ -84,16 +67,10 @@ def preprocess_data(split, feat_dir, phone_path, concat_nframes, train_ratio=0.8
         idx += cur_len
 
     X = X[:idx, :]
-    if mode != 'test':
-      y = y[:idx]
 
     print(f'[INFO] {split} set')
     print(X.shape)
-    if mode != 'test':
-      print(y.shape)
-      return X, y
-    else:
-      return X
+    return X
 
 from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
@@ -152,17 +129,16 @@ class Classifier(nn.Module):
         # x = self.fc(x)
         return x
 
-
 # data prarameters
 concat_nframes = 53              # the number of frames to concat with, n must be odd (total 2k+1 = n frames)
-train_ratio = 0.95               # the ratio of data used for training, the rest will be used for validation
+train_ratio = 0.9               # the ratio of data used for training, the rest will be used for validation
 
 # training parameters
 seed = 459                     # random seed
 batch_size = 512                # batch size
 num_epoch = 150                  # the number of training epoch
 learning_rate = 0.001          # learning rate
-weight_decay = 0.05
+weight_decay = 0.005
 model_path = './model' + str(num) + '.ckpt'     # the path where the checkpoint will be saved
 
 # model parameters
@@ -171,7 +147,7 @@ input_dim = 39
 hidden_layers = 10               # the number of hidden layers
 hidden_dim = 1024                # the hidden dim
 lstm_hidden_dim= 256
-lstm_hdden_layers=3
+lstm_hidden_layers=3
 
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -186,7 +162,8 @@ test_X = torch.reshape(test_X, (test_X.shape[0], concat_nframes, 39))
 test_set = LibriDataset(test_X, None)
 test_loader = DataLoader(test_set, batch_size=batch_size, shuffle=False)
 
-model = Classifier(input_dim=input_dim, hidden_layers=hidden_layers, hidden_dim=hidden_dim, lstm_hidden_dim=lstm_hidden_dim, lstm_hidden_layers=lstm_hdden_layers).to(device)
+model = Classifier(input_dim=input_dim, hidden_layers=hidden_layers, hidden_dim=hidden_dim, lstm_hidden_dim=lstm_hidden_dim, lstm_hidden_layers=lstm_hidden_layers).to(device)
+model.load_state_dict(torch.load(model_path))
 
 test_acc = 0.0
 test_lengths = 0
@@ -203,43 +180,31 @@ with torch.no_grad():
         _, test_pred = torch.max(outputs, 1) # get the index of the class with the highest probability
         pred = np.concatenate((pred, test_pred.cpu().numpy()), axis=0)
 
-# =============================================================================
-# def most_frequent(l : list):
-#     counter = 0
-#     num = l[0]
-#     for i in l:
-#         curr_fre = l.count(i)
-#         if curr_fre > counter:
-#             counter = curr_fre
-#             num = i
-#     
-#     return num
-# 
-# window_sz = 3
-# s = window_sz // 2
-# 
-# for i in range(s, len(pred) - s):
-#     if pred[i - s] == pred[i + s]:
-#         window = []5j4ru3
-#         for j in range(i - s, i + s + 1):
-#             window.append(pred[i])
-#         change = most_frequent(window)
-#         for j in range(i - s, i + s + 1):
-#             pred[j] = change
-# 
-# window_sz = 5
-# s = window_sz // 2
-# 
-# for i in range(s, len(pred) - s):
-#     if pred[i - s] == pred[i + s]:
-#         window = []
-#         for j in range(i - s, i + s + 1):
-#             window.append(pred[i])
-#         change = most_frequent(window)
-#         for j in range(i - s, i + s + 1):
-#             pred[j] = change
-# =============================================================================
 
+def most_frequent(l : list):
+    counter = 0
+    num = l[0]
+    for i in l:
+        curr_fre = l.count(i)
+        if curr_fre > counter:
+            counter = curr_fre
+            num = i
+
+    return num
+
+window_sz = 3
+s = window_sz // 2
+
+for i in range(s, len(pred) - s):
+    if pred[i - s] == pred[i + s]:
+        window = []
+        for j in range(i - s, i + s + 1):
+            window.append(pred[i])
+        change = most_frequent(window)
+        for j in range(i - s, i + s + 1):
+            pred[j] = change
+    elif pred[i - s] != pred[i] and pred[i] != pred[i + s] and pred[i - s] != pred[i + s]:
+        pred[i] = pred[i - s]
 
 with open('prediction' + str(num) + '.csv', 'w') as f:
     f.write('Id,Class\n')

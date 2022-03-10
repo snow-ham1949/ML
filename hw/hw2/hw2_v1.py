@@ -1,4 +1,4 @@
-num = 3
+num = 4
 
 import os
 import random
@@ -153,17 +153,16 @@ class Classifier(nn.Module):
         # x = self.fc(x)
         return x
 
-
 # data prarameters
 concat_nframes = 53              # the number of frames to concat with, n must be odd (total 2k+1 = n frames)
-train_ratio = 0.95               # the ratio of data used for training, the rest will be used for validation
+train_ratio = 0.9               # the ratio of data used for training, the rest will be used for validation
 
 # training parameters
 seed = 459                     # random seed
 batch_size = 512                # batch size
 num_epoch = 150                  # the number of training epoch
 learning_rate = 0.001          # learning rate
-weight_decay = 0.05
+weight_decay = 0.005
 model_path = './model' + str(num) + '.ckpt'     # the path where the checkpoint will be saved
 
 # model parameters
@@ -222,7 +221,7 @@ criterion = nn.CrossEntropyLoss()
 # optimizer = torch.optim.RMSprop(model.parameters(), lr=learning_rate, momentum=0.9, weight_decay=weight_decay)
 # =============================================================================
 optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
-scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer=optimizer, T_max = 10)
+scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer=optimizer, T_max = 50, verbose=True)
 
 
 best_acc = 0.0
@@ -292,3 +291,32 @@ if len(val_set) == 0:
 # %%
 del train_loader, val_loader
 gc.collect()
+
+test_X = preprocess_data(split='test', feat_dir='./libriphone/feat', phone_path='./libriphone', concat_nframes=concat_nframes)
+test_X = torch.reshape(test_X, (test_X.shape[0], concat_nframes, 39))
+test_set = LibriDataset(test_X, None)
+test_loader = DataLoader(test_set, batch_size=batch_size, shuffle=False)
+
+model = Classifier(input_dim=input_dim, hidden_layers=hidden_layers, hidden_dim=hidden_dim, lstm_hidden_dim=lstm_hidden_dim, lstm_hidden_layers=lstm_hdden_layers).to(device)
+model.load_state_dict(torch.load(model_path))
+
+test_acc = 0.0
+test_lengths = 0
+pred = np.array([], dtype=np.int32)
+
+model.eval()
+with torch.no_grad():
+    for i, batch in enumerate(tqdm(test_loader)):
+        features = batch
+        features = features.to(device)
+
+        outputs = model(features)
+
+        _, test_pred = torch.max(outputs, 1) # get the index of the class with the highest probability
+        pred = np.concatenate((pred, test_pred.cpu().numpy()), axis=0)
+        
+
+with open('prediction' + str(num) + '.csv', 'w') as f:
+    f.write('Id,Class\n')
+    for i, y in enumerate(pred):
+        f.write('{},{}\n'.format(i, y))
