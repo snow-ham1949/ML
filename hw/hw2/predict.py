@@ -1,4 +1,4 @@
-num = 4
+num = 1
 
 import os
 import torch

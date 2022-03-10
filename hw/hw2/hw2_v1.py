@@ -1,4 +1,4 @@
-num = 4
+num = 1
 
 import os
 import random
@@ -37,7 +37,7 @@ def concat_feat(x, concat_n):
     return x.permute(1, 0, 2).view(seq_len, concat_n * feature_dim)
 
 def preprocess_data(split, feat_dir, phone_path, concat_nframes, train_ratio=0.8, train_val_seed=1337):
-    train_val_seed= random.randint(0, 100000)
+    train_val_seed= 65393
     print('train_val_seed: ' + str(train_val_seed))
     class_num = 41 # NOTE: pre-computed, should not need change
     mode = 'train' if (split == 'train' or split == 'val') else 'test'
@@ -160,7 +160,7 @@ train_ratio = 0.9               # the ratio of data used for training, the rest 
 # training parameters
 seed = 459                     # random seed
 batch_size = 512                # batch size
-num_epoch = 150                  # the number of training epoch
+num_epoch = 50                  # the number of training epoch
 learning_rate = 0.001          # learning rate
 weight_decay = 0.005
 model_path = './model' + str(num) + '.ckpt'     # the path where the checkpoint will be saved
@@ -291,32 +291,3 @@ if len(val_set) == 0:
 # %%
 del train_loader, val_loader
 gc.collect()
-
-test_X = preprocess_data(split='test', feat_dir='./libriphone/feat', phone_path='./libriphone', concat_nframes=concat_nframes)
-test_X = torch.reshape(test_X, (test_X.shape[0], concat_nframes, 39))
-test_set = LibriDataset(test_X, None)
-test_loader = DataLoader(test_set, batch_size=batch_size, shuffle=False)
-
-model = Classifier(input_dim=input_dim, hidden_layers=hidden_layers, hidden_dim=hidden_dim, lstm_hidden_dim=lstm_hidden_dim, lstm_hidden_layers=lstm_hdden_layers).to(device)
-model.load_state_dict(torch.load(model_path))
-
-test_acc = 0.0
-test_lengths = 0
-pred = np.array([], dtype=np.int32)
-
-model.eval()
-with torch.no_grad():
-    for i, batch in enumerate(tqdm(test_loader)):
-        features = batch
-        features = features.to(device)
-
-        outputs = model(features)
-
-        _, test_pred = torch.max(outputs, 1) # get the index of the class with the highest probability
-        pred = np.concatenate((pred, test_pred.cpu().numpy()), axis=0)
-        
-
-with open('prediction' + str(num) + '.csv', 'w') as f:
-    f.write('Id,Class\n')
-    for i, y in enumerate(pred):
-        f.write('{},{}\n'.format(i, y))
