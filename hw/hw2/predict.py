@@ -1,4 +1,4 @@
-num = 2
+num = 3
 
 import os
 import random
@@ -37,7 +37,7 @@ def concat_feat(x, concat_n):
     return x.permute(1, 0, 2).view(seq_len, concat_n * feature_dim)
 
 def preprocess_data(split, feat_dir, phone_path, concat_nframes, train_ratio=0.8, train_val_seed=1337):
-    train_val_seed=4683
+    train_val_seed= 67231
     class_num = 41 # NOTE: pre-computed, should not need change
     mode = 'train' if (split == 'train' or split == 'val') else 'test'
 
@@ -95,7 +95,6 @@ def preprocess_data(split, feat_dir, phone_path, concat_nframes, train_ratio=0.8
     else:
       return X
 
-
 from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
 
@@ -115,7 +114,6 @@ class LibriDataset(Dataset):
 
     def __len__(self):
         return len(self.data)
-        
 
 import torch.nn as nn
 
@@ -155,24 +153,26 @@ class Classifier(nn.Module):
         return x
 
 
-concat_nframes = 45              # the number of frames to concat with, n must be odd (total 2k+1 = n frames)
+# data prarameters
+concat_nframes = 53              # the number of frames to concat with, n must be odd (total 2k+1 = n frames)
 train_ratio = 0.95               # the ratio of data used for training, the rest will be used for validation
 
 # training parameters
-seed = 10298                      # random seed
+seed = 459                     # random seed
 batch_size = 512                # batch size
-num_epoch = 120                  # the number of training epoch
-learning_rate = 0.01          # learning rate
-weight_decay = 0.005
+num_epoch = 150                  # the number of training epoch
+learning_rate = 0.001          # learning rate
+weight_decay = 0.05
 model_path = './model' + str(num) + '.ckpt'     # the path where the checkpoint will be saved
 
 # model parameters
 # input_dim = 39 * concat_nframes # the input dim of the model, you should not change the value
 input_dim = 39
-hidden_layers = 5               # the number of hidden layers
+hidden_layers = 10               # the number of hidden layers
 hidden_dim = 1024                # the hidden dim
 lstm_hidden_dim= 256
-lstm_hdden_layers=2
+lstm_hdden_layers=3
+
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 print(f'DEVICE: {device}')
@@ -181,25 +181,12 @@ print(f'DEVICE: {device}')
 import numpy as np
 
 
-def same_seeds(seed):
-    torch.manual_seed(seed)
-    if torch.cuda.is_available():
-        torch.cuda.manual_seed(seed)
-        torch.cuda.manual_seed_all(seed)  
-    np.random.seed(seed)  
-    torch.backends.cudnn.benchmark = False
-    torch.backends.cudnn.deterministic = True
-
-same_seeds(seed)
-
-
 test_X = preprocess_data(split='test', feat_dir='./libriphone/feat', phone_path='./libriphone', concat_nframes=concat_nframes)
 test_X = torch.reshape(test_X, (test_X.shape[0], concat_nframes, 39))
 test_set = LibriDataset(test_X, None)
 test_loader = DataLoader(test_set, batch_size=batch_size, shuffle=False)
 
 model = Classifier(input_dim=input_dim, hidden_layers=hidden_layers, hidden_dim=hidden_dim, lstm_hidden_dim=lstm_hidden_dim, lstm_hidden_layers=lstm_hdden_layers).to(device)
-model.load_state_dict(torch.load(model_path))
 
 test_acc = 0.0
 test_lengths = 0
@@ -216,40 +203,43 @@ with torch.no_grad():
         _, test_pred = torch.max(outputs, 1) # get the index of the class with the highest probability
         pred = np.concatenate((pred, test_pred.cpu().numpy()), axis=0)
 
-def most_frequent(l : list):
-    counter = 0
-    num = l[0]
-    for i in l:
-        curr_fre = l.count(i)
-        if curr_fre > counter:
-            counter = curr_fre
-            num = i
-    
-    return num
+# =============================================================================
+# def most_frequent(l : list):
+#     counter = 0
+#     num = l[0]
+#     for i in l:
+#         curr_fre = l.count(i)
+#         if curr_fre > counter:
+#             counter = curr_fre
+#             num = i
+#     
+#     return num
+# 
+# window_sz = 3
+# s = window_sz // 2
+# 
+# for i in range(s, len(pred) - s):
+#     if pred[i - s] == pred[i + s]:
+#         window = []5j4ru3
+#         for j in range(i - s, i + s + 1):
+#             window.append(pred[i])
+#         change = most_frequent(window)
+#         for j in range(i - s, i + s + 1):
+#             pred[j] = change
+# 
+# window_sz = 5
+# s = window_sz // 2
+# 
+# for i in range(s, len(pred) - s):
+#     if pred[i - s] == pred[i + s]:
+#         window = []
+#         for j in range(i - s, i + s + 1):
+#             window.append(pred[i])
+#         change = most_frequent(window)
+#         for j in range(i - s, i + s + 1):
+#             pred[j] = change
+# =============================================================================
 
-window_sz = 3
-s = window_sz // 2
-
-for i in range(s, len(pred) - s):
-    if pred[i - s] == pred[i + s]:
-        window = []
-        for j in range(i - s, i + s + 1):
-            window.append(pred[i])
-        change = most_frequent(window)
-        for j in range(i - s, i + s + 1):
-            pred[j] = change
-
-window_sz = 5
-s = window_sz // 2
-
-for i in range(s, len(pred) - s):
-    if pred[i - s] == pred[i + s]:
-        window = []
-        for j in range(i - s, i + s + 1):
-            window.append(pred[i])
-        change = most_frequent(window)
-        for j in range(i - s, i + s + 1):
-            pred[j] = change
 
 with open('prediction' + str(num) + '.csv', 'w') as f:
     f.write('Id,Class\n')
