@@ -1,4 +1,4 @@
-num = 2
+num = 1
 
 import os
 import random
@@ -37,7 +37,8 @@ def concat_feat(x, concat_n):
     return x.permute(1, 0, 2).view(seq_len, concat_n * feature_dim)
 
 def preprocess_data(split, feat_dir, phone_path, concat_nframes, train_ratio=0.8, train_val_seed=1337):
-    train_val_seed=459
+    train_val_seed= 65393
+    print('train_val_seed: ' + str(train_val_seed))
     class_num = 41 # NOTE: pre-computed, should not need change
     mode = 'train' if (split == 'train' or split == 'val') else 'test'
 
@@ -152,15 +153,18 @@ class Classifier(nn.Module):
         # x = self.fc(x)
         return x
 
-
 # data prarameters
 concat_nframes = 53              # the number of frames to concat with, n must be odd (total 2k+1 = n frames)
+<<<<<<< HEAD
 train_ratio = 0.95               # the ratio of data used for training, the rest will be used for validation
+=======
+train_ratio = 0.9               # the ratio of data used for training, the rest will be used for validation
+>>>>>>> 7a3f4204af0cd0ff516b31c0e15fefe5ce7d1858
 
 # training parameters
-seed = 52728                      # random seed
+seed = 459                     # random seed
 batch_size = 512                # batch size
-num_epoch = 120                  # the number of training epoch
+num_epoch = 150                  # the number of training epoch
 learning_rate = 0.001          # learning rate
 weight_decay = 0.05
 model_path = './model' + str(num) + '.ckpt'     # the path where the checkpoint will be saved
@@ -168,7 +172,7 @@ model_path = './model' + str(num) + '.ckpt'     # the path where the checkpoint 
 # model parameters
 # input_dim = 39 * concat_nframes # the input dim of the model, you should not change the value
 input_dim = 39
-hidden_layers = 5               # the number of hidden layers
+hidden_layers = 10               # the number of hidden layers
 hidden_dim = 1024                # the hidden dim
 lstm_hidden_dim= 256
 lstm_hdden_layers=3
@@ -217,8 +221,11 @@ same_seeds(seed)
 # create model, define a loss function, optimizer, and scheduler
 model = Classifier(input_dim=input_dim, hidden_layers=hidden_layers, hidden_dim=hidden_dim, lstm_hidden_dim=lstm_hidden_dim, lstm_hidden_layers=lstm_hdden_layers).to(device)
 criterion = nn.CrossEntropyLoss() 
+# =============================================================================
+# optimizer = torch.optim.RMSprop(model.parameters(), lr=learning_rate, momentum=0.9, weight_decay=weight_decay)
+# =============================================================================
 optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
-scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer=optimizer, T_max = num_epoch//20, eta_min=0)
+scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer=optimizer, T_max = 50, verbose=True)
 
 
 best_acc = 0.0
