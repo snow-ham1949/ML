@@ -155,14 +155,18 @@ class Classifier(nn.Module):
 
 # data prarameters
 concat_nframes = 53              # the number of frames to concat with, n must be odd (total 2k+1 = n frames)
+<<<<<<< HEAD
+train_ratio = 0.95               # the ratio of data used for training, the rest will be used for validation
+=======
 train_ratio = 0.9               # the ratio of data used for training, the rest will be used for validation
+>>>>>>> 7a3f4204af0cd0ff516b31c0e15fefe5ce7d1858
 
 # training parameters
 seed = 459                     # random seed
 batch_size = 512                # batch size
 num_epoch = 150                  # the number of training epoch
 learning_rate = 0.001          # learning rate
-weight_decay = 0.005
+weight_decay = 0.05
 model_path = './model' + str(num) + '.ckpt'     # the path where the checkpoint will be saved
 
 # model parameters
@@ -194,7 +198,7 @@ train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True)
 val_loader = DataLoader(val_set, batch_size=batch_size, shuffle=False)
 
 
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
+device = 'cuda:5' if torch.cuda.is_available() else 'cpu'
 print(f'DEVICE: {device}')
 
 
