@@ -1,0 +1,14 @@
+Namespace(no_progress_bar=False, log_interval=100, log_format=None, tensorboard_logdir=None, wandb_project=None, azureml_logging=False, seed=1, cpu=False, tpu=False, bf16=False, memory_efficient_bf16=False, fp16=False, memory_efficient_fp16=False, fp16_no_flatten_grads=False, fp16_init_scale=128, fp16_scale_window=None, fp16_scale_tolerance=0.0, min_loss_scale=0.0001, threshold_loss_scale=None, user_dir=None, empty_cache_freq=0, all_gather_list_size=16384, model_parallel_size=1, quantization_config_path=None, profile=False, reset_logging=False, suppress_crashes=False, criterion='cross_entropy', tokenizer=None, bpe=None, optimizer=None, lr_scheduler='fixed', scoring='bleu', task='translation', source_lang='en', target_lang='zh', trainpref='/home/csypt/桌面/ML/hw/hw5/DATA/rawdata/ted2020/train', validpref='/home/csypt/桌面/ML/hw/hw5/DATA/rawdata/ted2020/valid', testpref='/home/csypt/桌面/ML/hw/hw5/DATA/rawdata/ted2020/test', align_suffix=None, destdir='DATA/data-bin/ted2020', thresholdtgt=0, thresholdsrc=0, tgtdict=None, srcdict=None, nwordstgt=-1, nwordssrc=-1, alignfile=None, dataset_impl='mmap', joined_dictionary=True, only_source=False, padding_factor=8, workers=2)
+[en] Dictionary: 7992 types
+[en] /home/csypt/桌面/ML/hw/hw5/DATA/rawdata/ted2020/train.en: 390041 sents, 12217131 tokens, 0.0% replaced by <unk>
+[en] Dictionary: 7992 types
+[en] /home/csypt/桌面/ML/hw/hw5/DATA/rawdata/ted2020/valid.en: 3939 sents, 121037 tokens, 0.0% replaced by <unk>
+[en] Dictionary: 7992 types
+[en] /home/csypt/桌面/ML/hw/hw5/DATA/rawdata/ted2020/test.en: 4000 sents, 122894 tokens, 0.0% replaced by <unk>
+[zh] Dictionary: 7992 types
+[zh] /home/csypt/桌面/ML/hw/hw5/DATA/rawdata/ted2020/train.zh: 390041 sents, 9534722 tokens, 0.0% replaced by <unk>
+[zh] Dictionary: 7992 types
+[zh] /home/csypt/桌面/ML/hw/hw5/DATA/rawdata/ted2020/valid.zh: 3939 sents, 94587 tokens, 0.0116% replaced by <unk>
+[zh] Dictionary: 7992 types
+[zh] /home/csypt/桌面/ML/hw/hw5/DATA/rawdata/ted2020/test.zh: 4000 sents, 8000 tokens, 0.0% replaced by <unk>
+Wrote preprocessed data to DATA/data-bin/ted2020
