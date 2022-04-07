@@ -7,5 +7,5 @@
 | Regression | 0.86160 | 0.89706 | boss |
 | Classification | 0.80804 | 0.80913| strong |
 | CNN | 0.85756 | 0.85275 | strong |
-| Self-attention | N/A | N/A | ? |
-| Transformer | N/A  | N/A  | ? |
+| Self-attention | 0.83425 |0.83175 | strong |
+| Transformer | 26.42 | N/A  | ? |
