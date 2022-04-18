@@ -6,3 +6,10 @@
 /hw/hw6/MLHW_6
 /hw/hw6/result
 /hw/hw6/submission.tgz
+
+#hw7
+/hw/hw7/hw7_data.zip
+/hw/hw7/hw7_dev.json
+/hw/hw7/hw7_test.json
+/hw/hw7/hw7_train.json
+/hw/hw7/saved_model
