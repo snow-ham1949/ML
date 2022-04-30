@@ -13,3 +13,7 @@
 /hw/hw7/hw7_test.json
 /hw/hw7/hw7_train.json
 /hw/hw7/saved_model
+
+#hw8
+/hw/hw8/data
+*.pt
