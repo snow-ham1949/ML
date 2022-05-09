@@ -10,4 +10,5 @@
 | Self-attention | 0.83425 |0.83175 | strong |
 | Transformer | 26.42 | 26.36  | strong |
 | GAN | N/A | N/A | boss |
-| BERT | 0.80475 | N/A | strong |
+| BERT | 0.83131 | 0.84146 | strong/boss |
+| Autoencoder | 0.67360 | N/A | N/A|
