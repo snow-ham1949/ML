@@ -14,8 +14,8 @@
 | Autoencoder | 0.67360 | N/A | N/A|
 | Explainable AI | 9.6 | N/A | N/A |
 | Attack | | | |
-| Adaptation | | | |
+| Adaptation | 0.77034 | 0.76778 | strong |
 | RL | | | |
-| Compression | | | |
+| Compression | 0.85756 | 0.82927 | boss/strong |
 | Life-long | | | |
 | Meta Learning | | | |
