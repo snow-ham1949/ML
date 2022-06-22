@@ -6,6 +6,9 @@
 *.bin
 *.csv
 
+#hw3
+/hw/hw3/food11
+
 #hw6
 /hw/hw6/checkpoints
 /hw/hw6/faces
@@ -32,5 +35,5 @@
 /hw/hw13/outputs
 
 #hw15
-/hw/hw15/Ominglot
+/hw/hw15/Omniglot
 /hw/hw15/Omniglot-test
