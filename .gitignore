@@ -1,3 +1,11 @@
+*.tgz
+*.tar.gz
+*.zip
+*.json
+*.pt
+*.bin
+*.csv
+
 #hw6
 /hw/hw6/checkpoints
 /hw/hw6/faces
@@ -5,18 +13,24 @@
 /hw/hw6/models
 /hw/hw6/MLHW_6
 /hw/hw6/result
-/hw/hw6/submission.tgz
 
 #hw7
-/hw/hw7/hw7_data.zip
-/hw/hw7/hw7_dev.json
-/hw/hw7/hw7_test.json
-/hw/hw7/hw7_train.json
 /hw/hw7/saved_model
 
 #hw8
 /hw/hw8/data
-*.pt
 
 #hw10
 /hw/hw10/data
+
+#hw11
+/hw/hw11/real_or_drawing
+
+#hw13
+/hw/hw13/b08502041_hw13
+/hw/hw13/food11-hw13
+/hw/hw13/outputs
+
+#hw15
+/hw/hw15/Ominglot
+/hw/hw15/Omniglot-test
