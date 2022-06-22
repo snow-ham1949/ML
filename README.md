@@ -11,7 +11,7 @@
 | Transformer | 26.42 | 26.36  | strong |
 | GAN | N/A | N/A | boss |
 | BERT | 0.83131 | 0.84146 | strong/boss |
-| Autoencoder | 0.67360 | N/A | N/A|
+| Autoencoder | 0.82151 | 0.82810 | boss |
 | Explainable AI | 9.6 | N/A | N/A |
 | Attack | 0.05 | 0.08 | boss |
 | Adaptation | 0.77034 | 0.76778 | strong |
