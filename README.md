@@ -17,5 +17,5 @@
 | Adaptation | 0.77034 | 0.76778 | strong |
 | RL | 271 | N/A | boss |
 | Compression | 0.85756 | 0.82927 | boss/strong |
-| Life-long | | | |
+| Life-long | 8 | N/A | N/A |
 | Meta Learning | 0.97500 | | |
