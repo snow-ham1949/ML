@@ -18,4 +18,4 @@
 | RL | 271 | N/A | boss |
 | Compression | 0.85756 | 0.82927 | boss/strong |
 | Life-long | 8 | N/A | N/A |
-| Meta Learning | 0.97500 | | |
+| Meta Learning | 0.97500 | 0.98125 | boss |
